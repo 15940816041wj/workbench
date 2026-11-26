@@ -1407,8 +1407,10 @@
           <div class="row">
             <button class="btn" onclick="syncConnect()"><span class="e">🔗</span>连接并上传</button>
             <button class="btn ghost" onclick="pullCloud(false)"><span class="e">⬇️</span>从云端拉取</button>
+            <button class="btn ghost" onclick="inspectCloud()"><span class="e">🔍</span>查看云端</button>
             <button class="btn gray" onclick="syncDisconnect()">断开</button>
           </div>
+          <p class="muted" id="cloudInfo" style="margin-top:12px; font-size:12px; line-height:1.8; display:none;"></p>
           <p class="muted" style="margin-top:12px; font-size:12px; line-height:1.7;">
             数据以 workbench.json 存在你的私密 Gist 里，每次改动 3 秒后自动上传，打开页面时也会自动比对云端。Token 只保存在本机浏览器，可随时在 GitHub 后台撤销。
           </p>
@@ -1946,6 +1948,34 @@
       const c2 = syncCfg();
       if (c2.gistId) pullCloud(false);
       else pushCloud(false);
+    }
+    async function inspectCloud() {
+      const c = syncCfg();
+      if (!c.token || !c.gistId) { toast('先连接 GitHub'); return; }
+      renderSyncState('读取云端…');
+      try {
+        const res = await fetch('https://api.github.com/gists/' + c.gistId, { headers: ghHeaders(c.token), cache: 'no-store' });
+        if (!res.ok) throw new Error(await ghErr(res));
+        const j = await res.json();
+        const f = j.files && j.files[GIST_FILE];
+        if (!f) throw new Error('Gist 里没有 ' + GIST_FILE);
+        const raw = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+        const p = JSON.parse(raw);
+        const d = (p && p.data) || p || {};
+        const local = db || {};
+        const cnt = o => (o.tasks || []).length + ' 任务 · ' + (o.study || []).length + ' 学习 · ' + (o.testRecords || []).length + ' 测试 · ' + (((o.words || {}).list || []).length) + ' 单词';
+        const fmt = t => (t ? new Date(Number(t)).toLocaleString('zh-CN', { hour12: false }) : '无');
+        const el = $('cloudInfo');
+        el.style.display = 'block';
+        el.innerHTML = '☁️ 云端 ' + cnt(d) + '<br>更新时间 ' + fmt(p && p.updatedAt) + ' · 本地上次上传 ' + fmt(c.lastPush) +
+          '<br>💻 本地 ' + cnt(local);
+        renderSyncState();
+        toast('已读取云端');
+      } catch (e) {
+        $('cloudInfo').style.display = 'block';
+        $('cloudInfo').textContent = '读取失败：' + e.message;
+        renderSyncState('⚠️ ' + e.message);
+      }
     }
     function syncDisconnect() {
       if (!confirm('断开后本机不再自动同步，浏览器里的数据会保留。继续？')) return;
