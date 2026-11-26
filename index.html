@@ -642,6 +642,15 @@
       color: var(--red-ink);
     }
 
+    .icon-btn.edit:hover {
+      background: var(--primary-soft);
+      color: var(--primary-ink);
+    }
+
+    .row-actions {
+      white-space: nowrap;
+    }
+
     .empty {
       color: var(--muted);
       text-align: center;
@@ -1406,7 +1415,7 @@
           </div>
           <div class="row">
             <button class="btn" onclick="syncConnect()"><span class="e">🔗</span>连接并上传</button>
-            <button class="btn ghost" onclick="pullCloud(false)"><span class="e">⬇️</span>从云端拉取</button>
+            <button class="btn ghost" onclick="pullCloud(false, true)"><span class="e">⬇️</span>从云端拉取</button>
             <button class="btn ghost" onclick="inspectCloud()"><span class="e">🔍</span>查看云端</button>
             <button class="btn gray" onclick="syncDisconnect()">断开</button>
           </div>
@@ -1422,7 +1431,7 @@
   <!-- 学习记录 Modal -->
   <div class="modal-mask" id="studyModal">
     <div class="modal">
-      <h3><span class="h2-t"><span class="e">📝</span>记录学习</span></h3>
+      <h3><span class="h2-t"><span class="e">📝</span><span id="studyModalTitle">记录学习</span></span></h3>
       <div class="field">
         <label>科目</label>
         <input type="text" id="smSubject" list="subjectList" placeholder="如：英语 / 机器学习 / 执医考试">
@@ -1548,22 +1557,33 @@
     }
 
     /* ---------- study ---------- */
-    function openStudyModal() {
-      $('smDate').value = today();
-      $('smSubject').value = ''; $('smMinutes').value = '';
+    let editingStudyId = null;
+    function openStudyModal(id = '') {
+      const rec = id ? db.study.find(x => x.id === id) : null;
+      editingStudyId = rec ? rec.id : null;
+      $('studyModalTitle').textContent = rec ? '编辑学习记录' : '记录学习';
+      $('smDate').value = rec ? rec.date : today();
+      $('smSubject').value = rec ? rec.subject : ''; $('smMinutes').value = rec ? (rec.minutes || '') : '';
       $('smItems').innerHTML = '';
-      addItemRow();
+      const items = rec ? (rec.items || []) : [];
+      if (items.length) items.forEach(it => addItemRow(it)); else addItemRow();
       refreshSubjectList();
       $('studyModal').classList.add('open');
       setTimeout(() => $('smSubject').focus(), 50);
     }
-    function addItemRow(topic = '', points = '') {
+    function addItemRow(it = null) {
+      const item = { id: '', topic: '', points: '', tested: 0, scoreSum: 0, ...(it || {}) };
       const div = document.createElement('div');
       div.className = 'item-row';
+      if (item.id) {
+        div.dataset.id = item.id;
+        div.dataset.tested = item.tested || 0;
+        div.dataset.scoreSum = item.scoreSum || 0;
+      }
       div.innerHTML = `
     <button class="icon-btn del" title="删除该条" onclick="this.parentNode.remove()">✕</button>
-    <input type="text" class="it-topic" placeholder="主题（周测考这个）如：TCP 三次握手" value="${esc(topic)}">
-    <textarea class="it-points" placeholder="要点（对照答案）如：SYN → SYN-ACK → ACK…">${esc(points)}</textarea>`;
+    <input type="text" class="it-topic" placeholder="主题（周测考这个）如：TCP 三次握手" value="${esc(item.topic)}">
+    <textarea class="it-points" placeholder="要点（对照答案）如：SYN → SYN-ACK → ACK…">${esc(item.points)}</textarea>`;
       $('smItems').appendChild(div);
     }
     function refreshSubjectList() {
@@ -1576,12 +1596,25 @@
       $('smItems').querySelectorAll('.item-row').forEach(r => {
         const topic = r.querySelector('.it-topic').value.trim();
         const points = r.querySelector('.it-points').value.trim();
-        if (topic) items.push({ id: uid(), topic, points, tested: 0, scoreSum: 0 });
+        if (!topic) return;
+        items.push({
+          id: r.dataset.id || uid(), topic, points,
+          tested: parseInt(r.dataset.tested) || 0,
+          scoreSum: parseFloat(r.dataset.scoreSum) || 0
+        });
       });
       if (!minutes && !items.length) { toast('请至少填写时长或一条学习内容'); return; }
-      db.study.push({ id: uid(), subject: $('smSubject').value.trim() || '未分类', minutes, date: $('smDate').value || today(), items });
+      const subject = $('smSubject').value.trim() || '未分类';
+      const date = $('smDate').value || today();
+      const rec = editingStudyId ? db.study.find(x => x.id === editingStudyId) : null;
+      if (rec) {
+        rec.subject = subject; rec.minutes = minutes; rec.date = date; rec.items = items;
+      } else {
+        db.study.push({ id: uid(), subject, minutes, date, items });
+      }
+      editingStudyId = null;
       save(); closeModal('studyModal'); renderAll();
-      toast(items.length ? `已记录 ${items.length} 条学习内容` : '学习时长已记录');
+      toast(rec ? '记录已更新' : (items.length ? `已记录 ${items.length} 条学习内容` : '学习时长已记录'));
     }
     function delStudy(id) { db.study = db.study.filter(x => x.id !== id); save(); renderAll(); }
     function allItems() {
@@ -1616,7 +1649,7 @@
         const content = (s.items || []).map(it => `<b>${esc(it.topic)}</b>${it.points ? ' → ' + esc(it.points) : ''}`).join('<br>');
         return `<tr><td>${s.date.slice(5)}</td><td><span class="tag subj">${esc(s.subject)}</span></td>
       <td>${s.minutes || 0}′</td><td>${content || '<span class="muted">（仅时长）</span>'}</td>
-      <td><button class="icon-btn" onclick="delStudy('${s.id}')" title="删除" aria-label="删除记录">✕</button></td></tr>`;
+      <td class="row-actions"><button class="icon-btn edit" onclick="openStudyModal('${s.id}')" title="编辑" aria-label="编辑记录">✎</button><button class="icon-btn" onclick="delStudy('${s.id}')" title="删除" aria-label="删除记录">✕</button></td></tr>`;
       }).join('');
       $('studyEmpty').style.display = db.study.length ? 'none' : 'block';
       $('logCount').textContent = db.study.length ? `共 ${db.study.length} 条` : '';
@@ -1894,10 +1927,12 @@
         syncBusy = false;
       }
     }
-    async function pullCloud(silent) {
+    async function pullCloud(silent, force) {
       const c = syncCfg();
       if (!c.token || !c.gistId) { if (!silent) toast('先连接 GitHub'); return false; }
-      if (syncBusy) { syncTimer = setTimeout(() => pullCloud(silent), 1500); return false; }
+      if (syncBusy) { syncTimer = setTimeout(() => pullCloud(silent, force), 1500); return false; }
+      const localCount = (db.tasks || []).length + (db.study || []).length;
+      if (force && localCount && !confirm('将用云端数据覆盖本地（本地有 ' + localCount + ' 条记录），继续？')) return false;
       syncBusy = true;
       renderSyncState('拉取中…');
       try {
@@ -1910,7 +1945,7 @@
         const p = JSON.parse(raw);
         const remoteAt = Number(p && p.updatedAt) || 0;
         const localAt = Number(c.lastPush) || 0;
-        if (remoteAt <= localAt) {
+        if (!force && remoteAt <= localAt) {
           renderSyncState();
           if (!silent) toast('云端没有更新');
           return true;
@@ -1941,9 +1976,11 @@
       const c = syncCfg();
       if (!tok && !c.token) { toast('请先填写 GitHub Token'); $('ghToken').focus(); return; }
       const patch = {};
+      const prevGid = c.gistId;
       if (tok) patch.token = tok;
       if (gid) patch.gistId = gid;
       syncSet(patch);
+      if (gid && gid !== prevGid) syncSet({ lastPush: 0 });
       $('ghToken').value = '';
       const c2 = syncCfg();
       if (c2.gistId) pullCloud(false);
