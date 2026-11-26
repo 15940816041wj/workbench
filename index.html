@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>工作台 · 任务 / 学习 / 周测</title>
+  <style>
+    /* ---------- design tokens ---------- */
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --card-2: #f6f7f9;
+      --text: #1b1e24;
+      --text-2: #545d6b;
+      --muted: #667080;
+      --border: #e8eaef;
+      --border-strong: #d9dee7;
+      --primary: #3d6ae0;
+      --primary-hover: #345ed0;
+      --primary-soft: #edf1fe;
+      --primary-soft-2: #e2e9fd;
+      --primary-ink: #2b52b8;
+      --on-primary: #ffffff;
+      --green: #169a66;
+      --green-soft: #e8f6ef;
+      --green-ink: #0f7350;
+      --red: #d04545;
+      --red-soft: #fdeeee;
+      --red-ink: #ad3a3a;
+      --amber: #c48314;
+      --amber-soft: #fdf4e5;
+      --amber-ink: #8a5c05;
+      --toast-bg: #23272e;
+      --toast-fg: #f2f4f7;
+      --shadow: 0 1px 2px rgba(17, 24, 39, .05), 0 6px 16px rgba(17, 24, 39, .04);
+      --shadow-lg: 0 16px 48px rgba(17, 24, 39, .18);
+      --r: 14px;
+      --r-sm: 10px;
+      --r-xs: 8px;
+      --ease: cubic-bezier(.2, .6, .3, 1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1115;
+        --card: #171a1f;
+        --card-2: #1e2229;
+        --text: #e8eaee;
+        --text-2: #aeb6c2;
+        --muted: #939cab;
+        --border: #272c34;
+        --border-strong: #363d49;
+        --primary: #7ba2ff;
+        --primary-hover: #93b3ff;
+        --primary-soft: #1b2540;
+        --primary-soft-2: #223050;
+        --primary-ink: #a8c2ff;
+        --on-primary: #0d1220;
+        --green: #4ecb92;
+        --green-soft: #12302a;
+        --green-ink: #82e3b4;
+        --red: #ff8d8d;
+        --red-soft: #341d1d;
+        --red-ink: #ffabab;
+        --amber: #e8b25b;
+        --amber-soft: #322810;
+        --amber-ink: #f0c877;
+        --toast-bg: #e8eaee;
+        --toast-fg: #14171c;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 16px rgba(0, 0, 0, .24);
+        --shadow-lg: 0 16px 48px rgba(0, 0, 0, .6);
+      }
+    }
+
+    /* ---------- base ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 20px 72px;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    /* ---------- emoji ---------- */
+    .e {
+      font-size: 1.06em;
+      line-height: 1;
+      flex-shrink: 0;
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    }
+
+    .h2-t {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .logo {
+      display: inline-grid;
+      place-items: center;
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      background: var(--primary-soft);
+      font-size: 15px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* ---------- header & tabs ---------- */
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding: 0 2px;
+    }
+
+    header h1 {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 20px;
+      font-weight: 650;
+      letter-spacing: -.01em;
+    }
+
+    header .date {
+      color: var(--muted);
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    nav.tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 4px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    nav.tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    nav.tabs button {
+      flex: 1 0 auto;
+      min-width: 76px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: var(--r-xs);
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 550;
+      white-space: nowrap;
+      transition: background .18s var(--ease), color .18s var(--ease);
+    }
+
+    nav.tabs button:hover {
+      color: var(--text);
+      background: var(--card-2);
+    }
+
+    nav.tabs button.active {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+      animation: viewIn .22s var(--ease);
+    }
+
+    @keyframes viewIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* ---------- cards & layout ---------- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .card h2 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .micro-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .mt8 {
+      margin-top: 8px;
+    }
+
+    .mt12 {
+      margin-top: 12px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .row input[type=text] {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+
+    .add-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .add-row input[type=text] {
+      flex: 1 1 170px;
+      min-width: 0;
+    }
+
+    .list-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 20px 0 4px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .list-head select {
+      flex: 0 0 auto;
+    }
+
+    /* ---------- overview ---------- */
+    .ov-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 4px 2px;
+    }
+
+    .metric .num {
+      font-size: 26px;
+      font-weight: 650;
+      line-height: 1.25;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .metric .label .e {
+      margin-right: 4px;
+    }
+
+    .metric .progress {
+      margin-top: 10px;
+    }
+
+    .num.blue {
+      color: var(--primary);
+    }
+
+    .num.green {
+      color: var(--green);
+    }
+
+    .num.amber {
+      color: var(--amber);
+    }
+
+    .mini-chart {
+      background: var(--card-2);
+      border-radius: var(--r-sm);
+      padding: 12px 14px 10px;
+    }
+
+    .mini-chart .micro-label {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    /* ---------- inputs ---------- */
+    input[type=text],
+    input[type=number],
+    input[type=date],
+    select,
+    textarea {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--r-xs);
+      padding: 8px 12px;
+      min-height: 38px;
+      font: inherit;
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color .16s var(--ease), box-shadow .16s var(--ease), background .16s var(--ease);
+    }
+
+    input[type=text]:hover,
+    input[type=number]:hover,
+    input[type=date]:hover,
+    select:hover {
+      border-color: var(--border-strong);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+      background: var(--card);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+      width: 100%;
+      line-height: 1.65;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+      opacity: .8;
+    }
+
+    /* ---------- buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 8px 16px;
+      border: 0;
+      border-radius: var(--r-sm);
+      background: var(--primary);
+      color: var(--on-primary);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 550;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .16s var(--ease), transform .16s var(--ease), box-shadow .16s var(--ease);
+      box-shadow: 0 1px 2px rgba(17, 24, 39, .1);
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(17, 24, 39, .12);
+    }
+
+    .btn:active {
+      transform: translateY(0) scale(.985);
+      box-shadow: none;
+    }
+
+    .btn:disabled {
+      opacity: .45;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn.ghost {
+      background: var(--primary-soft);
+      color: var(--primary-ink);
+      box-shadow: none;
+    }
+
+    .btn.ghost:hover {
+      background: var(--primary-soft-2);
+      box-shadow: none;
+    }
+
+    .btn.gray {
+      background: var(--card-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    .btn.gray:hover {
+      background: var(--border);
+      box-shadow: none;
+    }
+
+    .btn.danger {
+      background: var(--red);
+      color: var(--on-primary);
+    }
+
+    .btn.danger:hover {
+      background: var(--red);
+      filter: brightness(.94);
+    }
+
+    .btn.green {
+      background: var(--green-soft);
+      color: var(--green-ink);
+      box-shadow: none;
+    }
+
+    .btn.green:hover {
+      background: var(--green-soft);
+      filter: brightness(.96);
+    }
+
+    .btn.amber {
+      background: var(--amber-soft);
+      color: var(--amber-ink);
+      box-shadow: none;
+    }
+
+    .btn.amber:hover {
+      background: var(--amber-soft);
+      filter: brightness(.96);
+    }
+
+    .btn.sm {
+      min-height: 30px;
+      padding: 4px 12px;
+      font-size: 12px;
+      border-radius: var(--r-xs);
+    }
+
+    /* ---------- list ---------- */
+    ul.list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    ul.list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 4px;
+      border-bottom: 1px solid var(--border);
+      transition: background .16s var(--ease);
+    }
+
+    ul.list li:last-child {
+      border-bottom: 0;
+    }
+
+    ul.list li .title {
+      flex: 1;
+      min-width: 0;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    ul.list li.done .title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .check {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      border-radius: 7px;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: background .16s var(--ease), border-color .16s var(--ease);
+    }
+
+    .check:hover {
+      border-color: var(--green);
+    }
+
+    .check.on {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 1px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tag.high {
+      background: var(--red-soft);
+      color: var(--red-ink);
+    }
+
+    .tag.mid {
+      background: var(--amber-soft);
+      color: var(--amber-ink);
+    }
+
+    .tag.low,
+    .tag.subj {
+      background: var(--primary-soft);
+      color: var(--primary-ink);
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+      border: 0;
+      border-radius: var(--r-xs);
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .16s var(--ease), color .16s var(--ease);
+    }
+
+    .icon-btn:hover {
+      background: var(--red-soft);
+      color: var(--red-ink);
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 30px 12px;
+      font-size: 13px;
+    }
+
+    .empty::before {
+      content: "📭";
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 9px;
+      opacity: .55;
+    }
+
+    /* ---------- progress ---------- */
+    .progress {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress>div {
+      height: 100%;
+      background: var(--green);
+      border-radius: 99px;
+      transition: width .4s var(--ease);
+    }
+
+    .subj-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .subj-bar-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .subj-bar-row .name {
+      width: 96px;
+      text-align: right;
+      color: var(--text-2);
+      flex-shrink: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .subj-bar-row .progress {
+      flex: 1;
+    }
+
+    .subj-bar-row .mins {
+      width: 72px;
+      color: var(--muted);
+      font-size: 12px;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------- table ---------- */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 460px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 11.5px;
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tbody tr {
+      transition: background .16s var(--ease);
+    }
+
+    tbody tr:hover {
+      background: var(--card-2);
+    }
+
+    td .tag {
+      margin-right: 2px;
+    }
+
+    /* ---------- chart ---------- */
+    .chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 132px;
+      padding-top: 8px;
+    }
+
+    .chart .col {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .chart .bar {
+      width: 76%;
+      max-width: 40px;
+      min-height: 3px;
+      background: var(--primary);
+      border-radius: 6px 6px 3px 3px;
+      transition: height .4s var(--ease);
+    }
+
+    .chart .bar.zero {
+      background: var(--border);
+    }
+
+    .chart .val {
+      font-size: 10.5px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chart .day {
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .chart.mini {
+      height: 54px;
+      gap: 4px;
+      padding-top: 0;
+    }
+
+    .chart.mini .val {
+      display: none;
+    }
+
+    .chart.mini .day {
+      font-size: 10px;
+    }
+
+    .chart.mini .bar {
+      border-radius: 4px 4px 2px 2px;
+    }
+
+    #stChart .bar {
+      max-width: 56px;
+    }
+
+    /* ---------- disclosure ---------- */
+    details.disclosure {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    details.disclosure>summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 18px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: background .16s var(--ease);
+    }
+
+    details.disclosure>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.disclosure>summary:hover {
+      background: var(--card-2);
+    }
+
+    details.disclosure>summary .chev {
+      width: 8px;
+      height: 8px;
+      flex-shrink: 0;
+      margin-top: -3px;
+      border-right: 1.6px solid var(--muted);
+      border-bottom: 1.6px solid var(--muted);
+      transform: rotate(45deg);
+      transition: transform .2s var(--ease);
+    }
+
+    details.disclosure[open]>summary .chev {
+      transform: rotate(-135deg);
+      margin-top: 2px;
+    }
+
+    details.disclosure .body {
+      padding: 0 20px 20px;
+    }
+
+    /* ---------- study modal item rows ---------- */
+    .item-row {
+      position: relative;
+      border: 1px dashed var(--border);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .item-row .del {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+    }
+
+    .item-row input {
+      width: 100%;
+      margin-bottom: 8px;
+      padding-right: 38px;
+    }
+
+    /* ---------- test session ---------- */
+    .q-topic {
+      font-size: 17px;
+      font-weight: 650;
+      letter-spacing: -.01em;
+      margin: 12px 0 6px;
+    }
+
+    .answer-box {
+      background: var(--green-soft);
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      font-size: 13.5px;
+    }
+
+    .my-answer {
+      background: var(--card-2);
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      margin: 8px 0;
+      white-space: pre-wrap;
+      color: var(--text-2);
+      font-size: 13.5px;
+    }
+
+    .grade-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .grade-row .btn {
+      flex: 1;
+    }
+
+    .stat {
+      text-align: center;
+      padding: 14px 8px;
+    }
+
+    .stat .num {
+      font-size: 30px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    /* ---------- toast ---------- */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      z-index: 99;
+      max-width: calc(100vw - 40px);
+      padding: 10px 18px;
+      border-radius: 99px;
+      background: var(--toast-bg);
+      color: var(--toast-fg);
+      font-size: 13px;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 12px);
+      transition: opacity .2s var(--ease), transform .26s var(--ease);
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    /* ---------- modal ---------- */
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(12, 16, 24, .42);
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-mask.open {
+      display: flex;
+      animation: fadeIn .18s var(--ease);
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 540px;
+      max-height: 86vh;
+      overflow-y: auto;
+      background: var(--card);
+      border-radius: var(--r);
+      padding: 22px;
+      box-shadow: var(--shadow-lg);
+      animation: popIn .2s var(--ease);
+    }
+
+    .modal h3 {
+      font-size: 16px;
+      font-weight: 650;
+      margin-bottom: 16px;
+      letter-spacing: -.01em;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(.99);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 760px) {
+      .container {
+        padding: 20px 14px 64px;
+      }
+
+      .grid-2,
+      .ov-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mini-chart {
+        padding: 12px 12px 8px;
+      }
+
+      .mini-chart .chart.mini .day {
+        display: none;
+      }
+
+      .metric .num {
+        font-size: 22px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      details.disclosure>summary {
+        padding: 16px;
+      }
+
+      details.disclosure .body {
+        padding: 0 16px 16px;
+      }
+
+      .btn {
+        min-height: 44px;
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+
+      .btn.sm {
+        min-height: 40px;
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 15px;
+      }
+
+      .check {
+        width: 26px;
+        height: 26px;
+      }
+
+      ul.list li {
+        padding: 12px 2px;
+      }
+
+      input[type=text],
+      input[type=number],
+      input[type=date],
+      select,
+      textarea {
+        min-height: 44px;
+        font-size: 16px;
+        /* 16px 避免 iOS 聚焦缩放 */
+      }
+
+      textarea {
+        font-size: 16px;
+      }
+
+      nav.tabs button {
+        padding: 10px;
+        font-size: 13.5px;
+        min-width: 60px;
+        gap: 5px;
+      }
+
+      .modal-mask {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .modal {
+        max-width: none;
+        max-height: 92vh;
+        border-radius: 18px 18px 0 0;
+        padding: 20px 18px 26px;
+      }
+
+      .grade-row {
+        flex-direction: column;
+      }
+
+      .grade-row .btn {
+        width: 100%;
+      }
+
+      .mini-chart .chart.mini {
+        height: 44px;
+      }
+
+      .card h2 {
+        font-size: 14.5px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <header>
+      <h1><span class="logo"><span class="e">🗂️</span></span>工作台</h1>
+      <span class="date" id="headerDate"></span>
+    </header>
+
+    <nav class="tabs">
+      <button data-view="home" class="active"><span class="e">☀️</span>今日</button>
+      <button data-view="tasks"><span class="e">✅</span>任务</button>
+      <button data-view="study"><span class="e">📚</span>学习</button>
+      <button data-view="test"><span class="e">✍️</span>周测</button>
+      <button data-view="stats"><span class="e">📊</span>统计</button>
+    </nav>
+
+    <!-- ============ 今日 ============ -->
+    <div class="view active" id="view-home">
+      <div class="card">
+        <div class="ov-grid">
+          <div class="metrics">
+            <div class="metric">
+              <div class="num blue" id="hTaskNum">0/0</div>
+              <div class="label"><span class="e">📋</span>今日任务</div>
+              <div class="progress">
+                <div id="hTaskBar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="metric">
+              <div class="num green" id="hStudyNum">0</div>
+              <div class="label"><span class="e">⏱️</span>今日学习（分钟）</div>
+            </div>
+            <div class="metric">
+              <div class="num amber" id="hStreakNum">0</div>
+              <div class="label"><span class="e">🔥</span>连续学习（天）</div>
+            </div>
+          </div>
+          <div class="mini-chart">
+            <span class="micro-label">近 7 天</span>
+            <div class="chart mini" id="hChart"></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost sm" onclick="go('tasks'); document.getElementById('taskInput').focus()"><span
+              class="e">➕</span>记录任务</button>
+          <button class="btn ghost sm" onclick="go('study'); openStudyModal()"><span class="e">➕</span>记录学习</button>
+          <button class="btn ghost sm" onclick="go('test'); startTest('week')"><span class="e">🚩</span>开始本周周测 · <span
+              id="hWeekItemCount">0</span> 题</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="h2-t"><span class="e">📋</span>今日待办</span></h2>
+        <ul class="list" id="hTaskList"></ul>
+      </div>
+    </div>
+
+    <!-- ============ 任务 ============ -->
+    <div class="view" id="view-tasks">
+      <div class="card">
+        <div class="add-row">
+          <input type="text" id="taskInput" placeholder="要做什么？回车即可添加" onkeydown="if(event.key==='Enter')addTask()">
+          <select id="taskPriority">
+            <option value="mid">普通</option>
+            <option value="high">重要</option>
+            <option value="low">低优先</option>
+          </select>
+          <input type="date" id="taskDate">
+          <button class="btn" onclick="addTask()"><span class="e">➕</span>添加</button>
+        </div>
+        <div class="list-head">
+          <span class="micro-label"><span class="e">🗒️</span>任务列表</span>
+          <select id="taskFilter" onchange="renderTasks()">
+            <option value="today">今天</option>
+            <option value="all">全部</option>
+            <option value="undone">未完成</option>
+          </select>
+        </div>
+        <ul class="list" id="taskList"></ul>
+      </div>
+    </div>
+
+    <!-- ============ 学习 ============ -->
+    <div class="view" id="view-study">
+      <div class="card">
+        <h2><span class="h2-t"><span class="e">🌱</span>学习概览</span>
+          <button class="btn sm" onclick="openStudyModal()"><span class="e">➕</span>记录学习</button>
+        </h2>
+        <div class="metrics">
+          <div class="metric">
+            <div class="num green" id="sToday">0</div>
+            <div class="label"><span class="e">⏱️</span>今日（分钟）</div>
+          </div>
+          <div class="metric">
+            <div class="num blue" id="sWeek">0</div>
+            <div class="label"><span class="e">📅</span>本周（分钟）</div>
+          </div>
+          <div class="metric">
+            <div class="num amber" id="sStreak">0</div>
+            <div class="label"><span class="e">🔥</span>连续（天）</div>
+          </div>
+        </div>
+        <div class="mt12">
+          <span class="micro-label">各科目累计</span>
+          <div class="mt8" id="sSubjects"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="h2-t"><span class="e">📖</span>学习记录 <span class="muted" id="logCount"></span></span></h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>科目</th>
+                <th>时长</th>
+                <th>内容（主题 → 要点）</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="studyLogBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="studyEmpty" style="display:none;">还没有记录。点右上角「记录学习」记下今天学了什么。</div>
+      </div>
+
+      <details class="card disclosure">
+        <summary><span class="h2-t"><span class="e">🎯</span>知识点掌握度 <span class="muted" id="itemCount"></span></span>
+          <span class="chev"></span>
+        </summary>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>科目</th>
+                  <th>主题</th>
+                  <th>测过</th>
+                  <th>平均得分</th>
+                </tr>
+              </thead>
+              <tbody id="itemTableBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="itemEmpty" style="display:none;">记录学习时填写「主题」，这里会自动汇总周测掌握度。</div>
+        </div>
+      </details>
+
+      <div class="card">
+        <h2><span class="h2-t"><span class="e">🔤</span>单词本 <span class="muted" id="wordCount"></span></span></h2>
+        <div class="add-row">
+          <input type="text" id="wordInput" placeholder="单词，如 abandon" onkeydown="if(event.key==='Enter')addWord()">
+          <input type="text" id="wordMeaning" placeholder="释义（可选）" onkeydown="if(event.key==='Enter')addWord()">
+          <input type="text" id="wordExample" placeholder="例句（可选）" onkeydown="if(event.key==='Enter')addWord()">
+          <button class="btn" onclick="addWord()"><span class="e">➕</span>添加</button>
+        </div>
+        <ul class="list mt12" id="wordList"></ul>
+        <div class="empty" id="wordEmpty" style="display:none;">单词本还是空的，在上面输入第一个词吧。</div>
+      </div>
+    </div>
+
+    <!-- ============ 周测 ============ -->
+    <div class="view" id="view-test">
+      <div class="card">
+        <h2><span class="h2-t"><span class="e">✍️</span>每周简答</span></h2>
+        <p class="muted" style="margin-bottom:14px;">
+          题目来自你记录的学习内容：看<b>主题</b>默写<b>要点</b>，再对照答案自评（正确 1 / 部分 0.5 / 不正确 0）。
+        </p>
+        <div class="row">
+          <select id="testRange">
+            <option value="week">本周（周一至今）</option>
+            <option value="lastweek">上周</option>
+            <option value="7d">近 7 天</option>
+            <option value="all">全部知识点</option>
+          </select>
+          <span class="muted" id="testAvail"></span>
+          <button class="btn" onclick="startTest(document.getElementById('testRange').value)"><span
+              class="e">▶️</span>开始测试</button>
+        </div>
+        <div class="list-head">
+          <span class="micro-label"><span class="e">🏆</span>历史成绩</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>范围</th>
+                <th>得分</th>
+                <th>正确率</th>
+              </tr>
+            </thead>
+            <tbody id="testRecordBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="testRecordEmpty" style="display:none;">还没有测试记录，选个范围开始第一轮吧。</div>
+      </div>
+    </div>
+
+    <!-- ============ 统计 ============ -->
+    <div class="view" id="view-stats">
+      <div class="card">
+        <h2><span class="h2-t"><span class="e">📊</span>近 7 天学习时长</span></h2>
+        <div class="chart" id="stChart"></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h2><span class="h2-t"><span class="e">✅</span>任务完成（近 7 天）</span></h2>
+          <div id="stTasks"></div>
+        </div>
+        <div class="card">
+          <h2><span class="h2-t"><span class="e">🎯</span>测试正确率</span></h2>
+          <div class="chart" id="stTestChart"></div>
+          <div class="empty" id="stTestEmpty" style="display:none;">暂无测试数据。</div>
+        </div>
+      </div>
+      <details class="card disclosure">
+        <summary><span class="h2-t"><span class="e">💾</span>数据与备份</span> <span class="chev"></span></summary>
+        <div class="body">
+          <p class="muted" style="margin-bottom:14px;">数据只保存在本机浏览器（localStorage）。导出 JSON 可存到网盘或云文档，换设备时用导入恢复。</p>
+          <div class="row">
+            <button class="btn ghost" onclick="exportData()"><span class="e">⬇️</span>导出 JSON</button>
+            <button class="btn ghost" onclick="document.getElementById('importFile').click()"><span
+                class="e">⬆️</span>导入 JSON</button>
+            <button class="btn danger" onclick="clearAll()"><span class="e">🗑️</span>清空所有数据</button>
+          </div>
+          <input type="file" id="importFile" accept=".json,application/json" style="display:none"
+            onchange="importData(event)">
+
+          <div class="list-head">
+            <span class="micro-label"><span class="e">☁️</span>GitHub 云同步</span>
+            <span class="muted" id="syncState" style="font-size:12px;">未连接</span>
+          </div>
+          <div class="field">
+            <label>GitHub Token（只勾 gist 权限，仅存在本机）</label>
+            <input type="password" id="ghToken" placeholder="ghp_…" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Gist ID（首次留空，会自动创建一个私密 Gist）</label>
+            <input type="text" id="ghGist" placeholder="留空即自动创建" autocomplete="off">
+          </div>
+          <div class="row">
+            <button class="btn" onclick="syncConnect()"><span class="e">🔗</span>连接并上传</button>
+            <button class="btn ghost" onclick="pullCloud(false)"><span class="e">⬇️</span>从云端拉取</button>
+            <button class="btn gray" onclick="syncDisconnect()">断开</button>
+          </div>
+          <p class="muted" style="margin-top:12px; font-size:12px; line-height:1.7;">
+            数据以 workbench.json 存在你的私密 Gist 里，每次改动 3 秒后自动上传，打开页面时也会自动比对云端。Token 只保存在本机浏览器，可随时在 GitHub 后台撤销。
+          </p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- 学习记录 Modal -->
+  <div class="modal-mask" id="studyModal">
+    <div class="modal">
+      <h3><span class="h2-t"><span class="e">📝</span>记录学习</span></h3>
+      <div class="field">
+        <label>科目</label>
+        <input type="text" id="smSubject" list="subjectList" placeholder="如：英语 / 机器学习 / 执医考试">
+        <datalist id="subjectList"></datalist>
+      </div>
+      <div class="grid grid-2">
+        <div class="field"><label>时长（分钟）</label><input type="number" id="smMinutes" min="0" placeholder="如：45"></div>
+        <div class="field"><label>日期</label><input type="date" id="smDate"></div>
+      </div>
+      <div class="field">
+        <label>内容（主题 = 周测题目，要点 = 对照答案）</label>
+        <div id="smItems"></div>
+        <button class="btn ghost sm" onclick="addItemRow()"><span class="e">➕</span>添加一条</button>
+      </div>
+      <div class="row" style="justify-content:flex-end;">
+        <button class="btn gray" onclick="closeModal('studyModal')">取消</button>
+        <button class="btn" onclick="saveStudy()"><span class="e">✅</span>保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 测试会话 Modal -->
+  <div class="modal-mask" id="sessionModal">
+    <div class="modal" id="sessionBody"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    'use strict';
+    const KEY = 'local_workbench_v2';
+    const OLD_KEY = 'local_workbench_v1';
+    const $ = id => document.getElementById(id);
+
+    /* ---------- storage & migration ---------- */
+    function migrate(old) {
+      const d = { tasks: old.tasks || [], study: [], testRecords: [] };
+      (old.study || []).forEach(s => {
+        d.study.push({
+          id: s.id, date: s.date, subject: s.subject, minutes: s.minutes || 0,
+          items: s.note ? [{ id: uid(), topic: s.note, points: '', tested: 0, scoreSum: 0 }] : []
+        });
+      });
+      return d;
+    }
+    function normalize(d) {
+      d.tasks = d.tasks || [];
+      d.study = d.study || [];
+      d.testRecords = d.testRecords || [];
+      d.words = d.words || {};
+      d.words.list = d.words.list || [];
+      return d;
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw) { const d = JSON.parse(raw); if (d && d.study) return normalize(d); }
+      } catch (e) { }
+      try {
+        const raw = localStorage.getItem(OLD_KEY);
+        if (raw) { const d = normalize(migrate(JSON.parse(raw))); localStorage.setItem(KEY, JSON.stringify(d)); return d; }
+      } catch (e) { }
+      return normalize({});
+    }
+    let db = load();
+    function save() { saveLocal(); schedulePush(); }
+    function saveLocal() { localStorage.setItem(KEY, JSON.stringify(db)); }
+    function hhmm() { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+    function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+    function today() { return dstr(new Date()); }
+    function dstr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._tm); t._tm = setTimeout(() => t.classList.remove('show'), 1800); }
+    function closeModal(id) { $(id).classList.remove('open'); }
+    function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+    document.querySelectorAll('.modal-mask').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+    /* ---------- tabs ---------- */
+    document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => go(b.dataset.view));
+    function go(view) {
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+      document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+      renderAll();
+    }
+
+    /* ---------- tasks ---------- */
+    function addTask() {
+      const input = $('taskInput');
+      const title = input.value.trim();
+      if (!title) return;
+      db.tasks.push({ id: uid(), title, priority: $('taskPriority').value, date: $('taskDate').value || today(), done: false, createdAt: Date.now() });
+      input.value = ''; save(); renderAll(); toast('任务已添加');
+    }
+    function toggleTask(id) { const t = db.tasks.find(x => x.id === id); if (t) { t.done = !t.done; save(); renderAll(); } }
+    function delTask(id) { db.tasks = db.tasks.filter(x => x.id !== id); save(); renderAll(); }
+    const PRI = { high: ['重要', 'high'], mid: ['普通', 'mid'], low: ['低优先', 'low'] };
+    function taskLi(t) {
+      const [plabel, pcls] = PRI[t.priority] || PRI.mid;
+      return `<li class="${t.done ? 'done' : ''}">
+    <button class="check ${t.done ? 'on' : ''}" onclick="toggleTask('${t.id}')" aria-label="标记完成">✓</button>
+    <span class="title">${esc(t.title)}</span>
+    <span class="tag ${pcls}">${plabel}</span>
+    <span class="muted">${t.date.slice(5)}</span>
+    <button class="icon-btn" onclick="delTask('${t.id}')" title="删除" aria-label="删除任务">✕</button>
+  </li>`;
+    }
+    function renderTasks() {
+      const f = $('taskFilter').value;
+      let list = db.tasks.slice().sort((a, b) => (a.done - b.done) || b.createdAt - a.createdAt);
+      if (f === 'today') list = list.filter(t => t.date === today());
+      if (f === 'undone') list = list.filter(t => !t.done);
+      $('taskList').innerHTML = list.length ? list.map(taskLi).join('') : '<div class="empty">暂无任务</div>';
+    }
+    function renderHome() {
+      const all = db.tasks.filter(t => t.date === today());
+      const list = all.slice().sort((a, b) => (a.done - b.done) || b.createdAt - a.createdAt).slice(0, 8);
+      $('hTaskList').innerHTML = list.length ? list.map(taskLi).join('') : '<div class="empty">今天还没有任务，点上面的「记录任务」开始。</div>';
+      const done = all.filter(t => t.done).length;
+      $('hTaskNum').textContent = done + '/' + all.length;
+      $('hTaskBar').style.width = (all.length ? done / all.length * 100 : 0) + '%';
+      $('hStudyNum').textContent = studyMinutes(today());
+      $('hStreakNum').textContent = streak();
+    }
+
+    /* ---------- study ---------- */
+    function openStudyModal() {
+      $('smDate').value = today();
+      $('smSubject').value = ''; $('smMinutes').value = '';
+      $('smItems').innerHTML = '';
+      addItemRow();
+      refreshSubjectList();
+      $('studyModal').classList.add('open');
+      setTimeout(() => $('smSubject').focus(), 50);
+    }
+    function addItemRow(topic = '', points = '') {
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.innerHTML = `
+    <button class="icon-btn del" title="删除该条" onclick="this.parentNode.remove()">✕</button>
+    <input type="text" class="it-topic" placeholder="主题（周测考这个）如：TCP 三次握手" value="${esc(topic)}">
+    <textarea class="it-points" placeholder="要点（对照答案）如：SYN → SYN-ACK → ACK…">${esc(points)}</textarea>`;
+      $('smItems').appendChild(div);
+    }
+    function refreshSubjectList() {
+      const subs = [...new Set(db.study.map(s => s.subject))].filter(Boolean);
+      $('subjectList').innerHTML = subs.map(s => `<option value="${esc(s)}">`).join('');
+    }
+    function saveStudy() {
+      const minutes = parseInt($('smMinutes').value) || 0;
+      const items = [];
+      $('smItems').querySelectorAll('.item-row').forEach(r => {
+        const topic = r.querySelector('.it-topic').value.trim();
+        const points = r.querySelector('.it-points').value.trim();
+        if (topic) items.push({ id: uid(), topic, points, tested: 0, scoreSum: 0 });
+      });
+      if (!minutes && !items.length) { toast('请至少填写时长或一条学习内容'); return; }
+      db.study.push({ id: uid(), subject: $('smSubject').value.trim() || '未分类', minutes, date: $('smDate').value || today(), items });
+      save(); closeModal('studyModal'); renderAll();
+      toast(items.length ? `已记录 ${items.length} 条学习内容` : '学习时长已记录');
+    }
+    function delStudy(id) { db.study = db.study.filter(x => x.id !== id); save(); renderAll(); }
+    function allItems() {
+      const out = [];
+      db.study.forEach(s => (s.items || []).forEach(it => out.push({ ...it, subject: s.subject, date: s.date, entryId: s.id })));
+      return out;
+    }
+    function studyMinutes(date) { return db.study.filter(s => s.date === date).reduce((a, s) => a + (s.minutes || 0), 0); }
+    function streak() {
+      let n = 0; const d = new Date();
+      if (studyMinutes(dstr(d)) === 0) d.setDate(d.getDate() - 1);
+      while (studyMinutes(dstr(d)) > 0) { n++; d.setDate(d.getDate() - 1); }
+      return n;
+    }
+    function weekStart(offset = 0) { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day - offset * 7); return dstr(d); }
+    function weekEnd(offset = 0) { const d = new Date(weekStart(offset) + 'T00:00:00'); d.setDate(d.getDate() + 6); return dstr(d); }
+    function renderStudy() {
+      $('sToday').textContent = studyMinutes(today());
+      const ws = weekStart();
+      $('sWeek').textContent = db.study.filter(s => s.date >= ws).reduce((a, s) => a + (s.minutes || 0), 0);
+      $('sStreak').textContent = streak();
+      const map = {};
+      db.study.forEach(s => map[s.subject] = (map[s.subject] || 0) + (s.minutes || 0));
+      const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+      const max = entries.length ? entries[0][1] : 1;
+      $('sSubjects').innerHTML = entries.map(([k, v]) =>
+        `<div class="subj-bar-row"><span class="name">${esc(k)}</span>
+     <div class="progress"><div style="width:${v / max * 100}%; background:var(--primary)"></div></div>
+     <span class="mins">${v} 分钟</span></div>`).join('') || '<div class="muted">暂无数据</div>';
+      const logs = db.study.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+      $('studyLogBody').innerHTML = logs.map(s => {
+        const content = (s.items || []).map(it => `<b>${esc(it.topic)}</b>${it.points ? ' → ' + esc(it.points) : ''}`).join('<br>');
+        return `<tr><td>${s.date.slice(5)}</td><td><span class="tag subj">${esc(s.subject)}</span></td>
+      <td>${s.minutes || 0}′</td><td>${content || '<span class="muted">（仅时长）</span>'}</td>
+      <td><button class="icon-btn" onclick="delStudy('${s.id}')" title="删除" aria-label="删除记录">✕</button></td></tr>`;
+      }).join('');
+      $('studyEmpty').style.display = db.study.length ? 'none' : 'block';
+      $('logCount').textContent = db.study.length ? `共 ${db.study.length} 条` : '';
+      const items = allItems();
+      $('itemCount').textContent = items.length ? `共 ${items.length} 个` : '';
+      $('itemTableBody').innerHTML = items.slice().reverse().slice(0, 50).map(it => {
+        const avg = it.tested ? Math.round(it.scoreSum / it.tested * 100) + '%' : '—';
+        return `<tr><td><span class="tag subj">${esc(it.subject)}</span></td><td>${esc(it.topic)}</td>
+      <td>${it.tested || 0} 次</td><td>${avg}</td></tr>`;
+      }).join('');
+      $('itemEmpty').style.display = items.length ? 'none' : 'block';
+    }
+
+    /* ---------- word list ---------- */
+    function addWord() {
+      const w = $('wordInput').value.trim();
+      if (!w) { toast('请先填写单词'); $('wordInput').focus(); return; }
+      const dup = db.words.list.find(x => x.w.toLowerCase() === w.toLowerCase());
+      if (dup) { toast(`「${w}」已经在单词本里了`); return; }
+      db.words.list.push({
+        id: uid(), w,
+        meaning: $('wordMeaning').value.trim(),
+        example: $('wordExample').value.trim(),
+        date: today()
+      });
+      $('wordInput').value = ''; $('wordMeaning').value = ''; $('wordExample').value = '';
+      save(); renderWords(); $('wordInput').focus();
+      toast('已记入单词本');
+    }
+    function delWord(id) {
+      db.words.list = db.words.list.filter(x => x.id !== id);
+      save(); renderWords();
+    }
+    function renderWords() {
+      const list = db.words.list.slice().reverse();
+      $('wordCount').textContent = list.length ? `共 ${list.length} 个` : '';
+      $('wordList').innerHTML = list.map(x => `<li>
+    <span class="title"><b>${esc(x.w)}</b>${x.meaning ? ' <span class="muted">' + esc(x.meaning) + '</span>' : ''}${x.example ? '<br><span class="muted">' + esc(x.example) + '</span>' : ''}</span>
+    <span class="muted">${(x.date || '').slice(5)}</span>
+    <button class="icon-btn" onclick="delWord('${x.id}')" title="删除" aria-label="删除单词">✕</button>
+  </li>`).join('');
+      $('wordEmpty').style.display = list.length ? 'none' : 'block';
+    }
+
+    /* ---------- charts ---------- */
+    function barChart(el, data) {
+      const max = Math.max(...data.map(d => d.value), 1);
+      el.innerHTML = data.map(d =>
+        `<div class="col"><span class="val">${d.value || ''}</span>
+     <div class="bar ${d.value ? '' : 'zero'}" style="height:${Math.max(d.value / max * 100, 3)}%"></div>
+     <span class="day">${d.label}</span></div>`).join('');
+    }
+    function lastNDays(n) {
+      const arr = []; const d = new Date();
+      for (let i = n - 1; i >= 0; i--) { const x = new Date(d); x.setDate(d.getDate() - i); arr.push({ date: dstr(x), label: (x.getMonth() + 1) + '/' + x.getDate() }); }
+      return arr;
+    }
+    function renderHomeChart() {
+      barChart($('hChart'), lastNDays(7).map(d => ({ label: d.label, value: studyMinutes(d.date) })));
+    }
+
+    /* ---------- weekly short-answer test ---------- */
+    const RANGE_LABEL = { week: '本周', lastweek: '上周', '7d': '近7天', all: '全部' };
+    function rangeItems(range) {
+      let from = null, to = null;
+      if (range === 'week') from = weekStart(0);
+      if (range === 'lastweek') { from = weekStart(1); to = weekEnd(1); }
+      if (range === '7d') from = lastNDays(7)[0].date;
+      return allItems().filter(it => (!from || it.date >= from) && (!to || it.date <= to));
+    }
+    let testSession = null;
+    function startTest(range) {
+      const pool = rangeItems(range);
+      if (!pool.length) { toast('该范围内还没有学习内容，先去「学习」页记录吧'); return; }
+      testSession = { range, deck: shuffle(pool.slice()), idx: 0, score: 0, answer: '', revealed: false };
+      renderTestStep();
+      $('sessionModal').classList.add('open');
+    }
+    function renderTestStep() {
+      const s = testSession;
+      if (s.idx >= s.deck.length) {
+        const pct = Math.round(s.score / s.deck.length * 100);
+        const comment = pct >= 90 ? '掌握得非常好' : pct >= 70 ? '不错，继续保持' : pct >= 50 ? '有一半还需巩固' : '别灰心，明天再记再测';
+        db.testRecords.push({ id: uid(), date: today(), ts: Date.now(), range: RANGE_LABEL[s.range], score: s.score, total: s.deck.length });
+        save(); renderTestRecords(); renderStats(); renderStudy();
+        $('sessionBody').innerHTML = `<h3><span class="h2-t"><span class="e">🎉</span>本轮完成</span></h3>
+      <div class="stat"><div class="num ${pct >= 70 ? 'green' : 'amber'}">${pct}%</div>
+      <div class="label">得分 ${s.score} / ${s.deck.length}（${RANGE_LABEL[s.range]}）</div></div>
+      <div style="text-align:center; font-size:15px; margin:10px 0; color:var(--text-2);">${comment}</div>
+      <div class="row mt12" style="justify-content:center;">
+        <button class="btn" onclick="startTest('${s.range}')"><span class="e">🔄</span>再测一轮</button>
+        <button class="btn gray" onclick="closeModal('sessionModal')">结束</button>
+      </div>`;
+        return;
+      }
+      const it = s.deck[s.idx];
+      if (!s.revealed) {
+        $('sessionBody').innerHTML = `
+      <div class="muted" style="display:flex; justify-content:space-between; gap:10px;">
+        <span><span class="tag subj">${esc(it.subject)}</span> <span>${it.date.slice(5)} 记录</span></span>
+        <span>第 ${s.idx + 1} / ${s.deck.length} 题</span>
+      </div>
+      <div class="q-topic">请简答：${esc(it.topic)}</div>
+      <div class="field mt8"><textarea id="testAnswer" style="min-height:120px" placeholder="凭记忆写下要点…">${esc(s.answer)}</textarea></div>
+      <div class="row" style="justify-content:flex-end;">
+        <button class="btn gray" onclick="closeModal('sessionModal')">放弃本轮</button>
+        <button class="btn" onclick="revealTest()"><span class="e">👀</span>对照答案</button>
+      </div>`;
+        setTimeout(() => $('testAnswer') && $('testAnswer').focus(), 50);
+      } else {
+        $('sessionBody').innerHTML = `
+      <div class="muted" style="display:flex; justify-content:space-between; gap:10px;">
+        <span><span class="tag subj">${esc(it.subject)}</span></span>
+        <span>第 ${s.idx + 1} / ${s.deck.length} 题 · 当前 ${s.score} 分</span>
+      </div>
+      <div class="q-topic">${esc(it.topic)}</div>
+      <div class="my-answer"><b>我的回答：</b><br>${esc(s.answer) || '<i>（未作答）</i>'}</div>
+      <div class="answer-box"><b>参考要点：</b><br>${esc(it.points) || '<i>（记录时未填要点）</i>'}</div>
+      <div class="muted" style="margin-bottom:8px;">对照后自评</div>
+      <div class="grade-row">
+        <button class="btn danger" onclick="gradeTest(0)">不正确 0</button>
+        <button class="btn amber" onclick="gradeTest(0.5)">部分 0.5</button>
+        <button class="btn green" onclick="gradeTest(1)">正确 1</button>
+      </div>`;
+      }
+    }
+    function revealTest() {
+      const s = testSession;
+      s.answer = $('testAnswer') ? $('testAnswer').value.trim() : '';
+      s.revealed = true;
+      renderTestStep();
+    }
+    function gradeTest(score) {
+      const s = testSession, it = s.deck[s.idx];
+      const real = allItems().find(x => x.id === it.id);
+      if (real) {
+        const entry = db.study.find(e => e.id === real.entryId);
+        const item = entry && entry.items.find(x => x.id === it.id);
+        if (item) { item.tested++; item.scoreSum += score; }
+      }
+      s.score += score;
+      s.idx++; s.answer = ''; s.revealed = false;
+      save(); renderTestStep();
+    }
+    function renderTestRecords() {
+      const recs = db.testRecords.slice(-20).reverse();
+      $('testRecordBody').innerHTML = recs.map(r =>
+        `<tr><td>${r.date}</td><td>${esc(r.range)}</td><td>${r.score} / ${r.total}</td><td>${Math.round(r.score / r.total * 100)}%</td></tr>`).join('');
+      $('testRecordEmpty').style.display = recs.length ? 'none' : 'block';
+      $('testAvail').textContent = `当前范围可用 ${rangeItems($('testRange').value).length} 题`;
+      $('hWeekItemCount').textContent = rangeItems('week').length;
+    }
+
+    /* ---------- stats ---------- */
+    function renderStats() {
+      barChart($('stChart'), lastNDays(7).map(d => ({ label: d.label, value: studyMinutes(d.date) })));
+      const days = lastNDays(7);
+      $('stTasks').innerHTML = days.map(d => {
+        const all = db.tasks.filter(t => t.date === d.date);
+        const done = all.filter(t => t.done).length;
+        const pct = all.length ? done / all.length * 100 : 0;
+        return `<div class="subj-bar-row"><span class="name">${d.label}</span>
+      <div class="progress"><div style="width:${pct}%"></div></div>
+      <span class="mins">${done}/${all.length}</span></div>`;
+      }).reverse().join('');
+      const recs = db.testRecords.slice(-10);
+      if (recs.length) {
+        $('stTestEmpty').style.display = 'none';
+        barChart($('stTestChart'), recs.map((r, i) => ({ label: '#' + (db.testRecords.length - recs.length + i + 1), value: Math.round(r.score / r.total * 100) })));
+      } else {
+        $('stTestEmpty').style.display = 'block';
+        $('stTestChart').innerHTML = '';
+      }
+    }
+
+    /* ---------- data mgmt ---------- */
+    function exportData() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'workbench-backup-' + today() + '.json';
+      a.click();
+      toast('备份已导出');
+    }
+    function importData(ev) {
+      const f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        ev.target.value = '';
+        let data;
+        try { data = JSON.parse(r.result); } catch (e) { toast('不是有效的 JSON 文件'); return; }
+        if (!data || typeof data !== 'object' || Array.isArray(data) || !('tasks' in data || 'study' in data)) { toast('文件内容不是工作台备份'); return; }
+        const n = (data.tasks || []).length + (data.study || []).length + (data.testRecords || []).length + ((data.words && data.words.list) || []).length;
+        if (!confirm('将用备份覆盖当前数据（共 ' + n + ' 条记录），继续？')) return;
+        const next = normalize(data);
+        next.study.forEach(s => { s.items = s.items || []; });
+        db = next;
+        save(); renderAll();
+        toast('导入完成，共 ' + n + ' 条记录');
+      };
+      r.onerror = () => { ev.target.value = ''; toast('读取文件失败'); };
+      r.readAsText(f);
+    }
+    /* ---------- cloud sync (GitHub Gist) ---------- */
+    const SYNC_KEY = 'local_workbench_sync';
+    const GIST_FILE = 'workbench.json';
+    let syncTimer = null, syncBusy = false;
+
+    function syncCfg() {
+      try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; }
+    }
+    function syncSet(patch) {
+      const c = Object.assign(syncCfg(), patch);
+      localStorage.setItem(SYNC_KEY, JSON.stringify(c));
+      renderSyncState();
+      return c;
+    }
+    function renderSyncState(msg) {
+      const el = $('syncState');
+      if (!el) return;
+      if (msg) { el.textContent = msg; return; }
+      const c = syncCfg();
+      if (!c.token) { el.textContent = '未连接'; return; }
+      if (!c.gistId) { el.textContent = '已填入 Token，点「连接并上传」创建云端备份'; return; }
+      el.textContent = c.lastSync ? '已连接 · 上次同步 ' + c.lastSync : '已连接';
+    }
+    function ghHeaders(token) {
+      return { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' };
+    }
+    async function ghErr(res) {
+      if (res.status === 401) return 'Token 无效或权限不足';
+      if (res.status === 404) return 'Gist 不存在或无权限';
+      if (res.status === 403) return '请求太频繁，稍后再试';
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) { }
+      return msg;
+    }
+    function schedulePush() {
+      const c = syncCfg();
+      if (!c.token || !c.gistId) return;
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => pushCloud(true), 3000);
+    }
+    async function pushCloud(silent) {
+      const c = syncCfg();
+      if (!c.token) { if (!silent) toast('请先填写 GitHub Token'); return false; }
+      if (syncBusy) { syncTimer = setTimeout(() => pushCloud(silent), 1500); return false; }
+      syncBusy = true;
+      renderSyncState('上传中…');
+      try {
+        const updatedAt = Date.now();
+        const files = { [GIST_FILE]: { content: JSON.stringify({ v: 2, updatedAt, app: 'workbench', data: db }, null, 2) } };
+        let res;
+        if (c.gistId) {
+          res = await fetch('https://api.github.com/gists/' + c.gistId, {
+            method: 'PATCH', headers: ghHeaders(c.token), body: JSON.stringify({ files })
+          });
+        } else {
+          res = await fetch('https://api.github.com/gists', {
+            method: 'POST', headers: ghHeaders(c.token),
+            body: JSON.stringify({ description: 'workbench backup', public: false, files })
+          });
+        }
+        if (!res.ok) throw new Error(await ghErr(res));
+        const j = await res.json();
+        syncSet({ gistId: j.id, lastPush: updatedAt, lastSync: hhmm() });
+        if (!silent) toast('已上传到 GitHub');
+        return true;
+      } catch (e) {
+        renderSyncState('⚠️ ' + e.message);
+        if (!silent) toast('上传失败：' + e.message);
+        return false;
+      } finally {
+        syncBusy = false;
+      }
+    }
+    async function pullCloud(silent) {
+      const c = syncCfg();
+      if (!c.token || !c.gistId) { if (!silent) toast('先连接 GitHub'); return false; }
+      if (syncBusy) { syncTimer = setTimeout(() => pullCloud(silent), 1500); return false; }
+      syncBusy = true;
+      renderSyncState('拉取中…');
+      try {
+        const res = await fetch('https://api.github.com/gists/' + c.gistId, { headers: ghHeaders(c.token), cache: 'no-store' });
+        if (!res.ok) throw new Error(await ghErr(res));
+        const j = await res.json();
+        const f = j.files && j.files[GIST_FILE];
+        if (!f) throw new Error('Gist 里没有 ' + GIST_FILE);
+        const raw = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+        const p = JSON.parse(raw);
+        const remoteAt = Number(p && p.updatedAt) || 0;
+        const localAt = Number(c.lastPush) || 0;
+        if (remoteAt <= localAt) {
+          renderSyncState();
+          if (!silent) toast('云端没有更新');
+          return true;
+        }
+        const next = normalize(p && p.data ? p.data : p);
+        next.study.forEach(s => { s.items = s.items || []; });
+        db = next;
+        saveLocal(); renderAll();
+        syncSet({ lastPush: remoteAt, lastSync: hhmm() });
+        toast('已从云端同步');
+        return true;
+      } catch (e) {
+        if (String(e.message).indexOf('Gist 里没有') >= 0) {
+          syncBusy = false;
+          renderSyncState();
+          return await pushCloud(silent);
+        }
+        renderSyncState('⚠️ ' + e.message);
+        if (!silent) toast('拉取失败：' + e.message);
+        return false;
+      } finally {
+        syncBusy = false;
+      }
+    }
+    function syncConnect() {
+      const tok = $('ghToken').value.trim();
+      const gid = $('ghGist').value.trim();
+      const c = syncCfg();
+      if (!tok && !c.token) { toast('请先填写 GitHub Token'); $('ghToken').focus(); return; }
+      const patch = {};
+      if (tok) patch.token = tok;
+      if (gid) patch.gistId = gid;
+      syncSet(patch);
+      $('ghToken').value = '';
+      const c2 = syncCfg();
+      if (c2.gistId) pullCloud(false);
+      else pushCloud(false);
+    }
+    function syncDisconnect() {
+      if (!confirm('断开后本机不再自动同步，浏览器里的数据会保留。继续？')) return;
+      clearTimeout(syncTimer);
+      localStorage.removeItem(SYNC_KEY);
+      $('ghToken').value = ''; $('ghGist').value = '';
+      renderSyncState();
+      toast('已断开云同步');
+    }
+
+    function clearAll() {
+      if (!confirm('确定要清空所有数据吗？此操作不可恢复，建议先导出备份。')) return;
+      db = normalize({});
+      save(); renderAll(); toast('已清空');
+    }
+
+    /* ---------- init ---------- */
+    function renderAll() {
+      renderHome(); renderHomeChart();
+      renderTasks(); renderStudy(); renderWords();
+      renderTestRecords(); renderStats();
+    }
+    $('testRange').addEventListener('change', renderTestRecords);
+    (function init() {
+      const d = new Date();
+      const wd = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+      $('headerDate').textContent = `${d.getMonth() + 1} 月 ${d.getDate()} 日 · 周${wd}`;
+      $('taskDate').value = today();
+      renderAll();
+      const c0 = syncCfg();
+      if (c0.gistId) $('ghGist').value = c0.gistId;
+      renderSyncState();
+      if (c0.token && c0.gistId) setTimeout(() => pullCloud(true), 1200);
+    })();
+  </script>
+</body>
+
+</html>
